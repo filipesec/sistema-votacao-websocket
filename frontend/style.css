@@ -1,0 +1,168 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 0;
+    background-color: #ffffff;
+    color: #333;
+}
+
+main {
+  padding: 50px 0;
+  text-align: center;
+}
+
+.header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background-color: #ff7a00;
+    color: rgb(121, 6, 6);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.footer {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background-color: #ff7a00;
+    color: rgb(121, 6, 6);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.botoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 30px;
+}
+
+.botoes button {
+  background: linear-gradient(135deg, #ff7a00, #ffb347);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  padding: 15px 35px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(255, 122, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.botoes button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(255, 122, 0, 0.4);
+  filter: brightness(1.1);
+}
+
+.botoes button:active {
+  transform: scale(0.95); /* reduz ao clicar */
+}
+
+.botoes button.clicado {
+  transform: scale(1.1);
+  filter: brightness(1.2);
+  transition: transform 0.2s, filter 0.2s;
+}
+
+#Rock:hover {
+  background: linear-gradient(135deg, #b71c1c, #f44336);
+}
+
+#Pop:hover {
+  background: linear-gradient(135deg, #ad1457, #ec407a);
+}
+
+#Funk:hover {
+  background: linear-gradient(135deg, #ef6c00, #ffb300);
+}
+
+#Sertanejo:hover {
+  background: linear-gradient(135deg, #558b2f, #8bc34a);
+}
+
+#Piseiro:hover {
+  background: linear-gradient(135deg, #ff8f00, #fdd835);
+}
+
+#Axe:hover {
+  background: linear-gradient(135deg, #f57f17, #ffa000);
+}
+
+#Samba:hover {
+  background: linear-gradient(135deg, #4e342e, #8d6e63);
+}
+
+#Eletronica:hover {
+  background: linear-gradient(135deg, #00838f, #00acc1);
+}
+
+.resultado {
+  margin-top: 50px;
+  width: 80%;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (max-width: 600px) {
+  .botoes button {
+    width: 100%;
+    font-size: 1.1rem;
+  }
+
+  .resultado {
+    width: 95%;
+  }
+}
+
+/* Container do gráfico */
+#grafico-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  margin-top: 40px;
+}
+
+/* Controlar o tamanho real do canvas */
+#grafico {
+  max-width: 400px;  /* Largura máxima do gráfico */
+  max-height: 400px; /* Altura máxima */
+  width: 80%;        /* Tamanho relativo, se a tela for pequena */
+  height: auto;
+  opacity: 0;
+  transform: scale(0.8);
+  animation: aparecer 1.2s ease-out forwards;
+}
+
+@keyframes aparecer {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  #grafico {
+    max-width: 300px;
+  }
+}
+
+@media (max-width: 480px) {
+  #grafico {
+    max-width: 250px;
+  }
+}

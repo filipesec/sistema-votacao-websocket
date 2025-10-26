@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./style.css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <title>Página Votação</title>
+</head>
+<body>
+    <header class="header">
+        <h1></i>Qual seu gênero musical favorito?</h1>
+        <p>Vote abaixo e veja os resultados ao vivo</p>
+    </header>
+    <main>
+        <section id="botoes" class="botoes">
+            <button id="Rock">Rock</button>
+            <button id="Pop">Pop</button>
+            <button id="Funk">Funk</button>
+            <button id="Sertanejo">Sertanejo</button>
+            <button id="Piseiro">Piseiro</button>
+            <button id="Axe">Axé</button>
+            <button id="Samba">Samba</button>
+            <button id="Eletronica">Eletrônica</button>
+        </section>
+        <section id="resultados" class="resultados">
+            <h2>Resultados Parciais</h2>
+            <canvas id="grafico"></canvas>
+            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+            <script src="script.js"></script>
+        </section>
+        <audio id="somClique" src="click.mp3"></audio>
+    </main>
+    <footer class="footer">
+        <p>@ 2025 Nome</p>
+    </footer>
+</body>
+</html>
