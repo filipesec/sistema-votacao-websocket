@@ -29,13 +29,18 @@ main {
 
 .footer {
     display: flex;
-    flex-direction: row;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     padding: 1rem 2rem;
     background-color: #ff7a00;
     color: rgb(121, 6, 6);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 -3px 8px rgba(0, 0, 0, 0.15);
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: 0.3px;
+    text-align: center;
+    border-top: 2px solid rgba(255,255,255,0.3);
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.4);
 }
 
 .botoes {
@@ -57,6 +62,7 @@ main {
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(255, 122, 0, 0.3);
   transition: all 0.3s ease;
+  position: relative;
 }
 
 .botoes button:hover {
@@ -73,6 +79,22 @@ main {
   transform: scale(1.1);
   filter: brightness(1.2);
   transition: transform 0.2s, filter 0.2s;
+}
+
+.botoes button::after {
+  position: absolute;
+  bottom: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  font-size: 13px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s, transform 0.3s;
 }
 
 #Rock:hover {
@@ -105,6 +127,26 @@ main {
 
 #Eletronica:hover {
   background: linear-gradient(135deg, #00838f, #00acc1);
+}
+
+#Forro:hover {
+  background: linear-gradient(135deg, #f55220, #fd6739);
+}
+
+#Rap:hover {
+  background: linear-gradient(135deg, #d77ae7, #d231ee);
+}
+
+#MPB:hover {
+  background: linear-gradient(135deg, #307932, #38c43c);
+}
+
+#Pagode:hover {
+  background: linear-gradient(135deg, #ca9c11, #e4c054);
+}
+
+#Reggae:hover {
+  background: linear-gradient(135deg, #22bed3, #56bbc9);
 }
 
 .resultado {
@@ -165,4 +207,23 @@ main {
   #grafico {
     max-width: 250px;
   }
+}
+
+.descricao {
+  margin-top: 20px;
+  font-size: 1rem;
+  color: #333;
+  font-style: italic;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+  line-height: 1.5;
+  opacity: 1;
+  transform: none;
+}
+
+.descricao.mostrar {
+  opacity: 1;
+  transform: translateY(0);
 }
