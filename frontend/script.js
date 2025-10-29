@@ -1,4 +1,4 @@
-const socket = new WebSocket("ws://localhost:8765");
+const socket = new WebSocket("wss://previsible-dorotha-perturbingly.ngrok-free.dev/ws");
 
   socket.onopen = () => console.log("Conectado ao servidor WebSocket");
   socket.onclose = () => console.log("Conexão encerrada");
