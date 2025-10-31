@@ -28,8 +28,12 @@ class GerenciadorVotacao:
     def __init__(self):
         self.enquete_atual = {
             'id': 'musical',
-            'pergunta': 'Qual seu estilo musical favorito?',
-            'opcoes': ['Rock', 'Pop', 'Funk', 'Sertanejo', 'Piseiro', 'Axe', 'Samba', 'Eletronica']
+            'pergunta': 'Qual seu gênero musical favorito?',
+            'opcoes': [
+                'Rock', 'Pop', 'Funk', 'Sertanejo', 'Piseiro', 
+                'Axe', 'Samba', 'Eletronica', 'Forro', 'Rap', 
+                'MPB', 'Pagode', 'Reggae'
+            ]
         }
         self.votos = {opcao: 0 for opcao in self.enquete_atual['opcoes']}
         self.clientes_votaram = set()
@@ -73,11 +77,13 @@ async def websocket_endpoint(websocket: WebSocket):
     conexoes_ativas.append(websocket)
     
     try:
+        # Enviar enquete atual
         await websocket.send_json({
             'tipo': 'enquete_atual',
             'enquete': gerenciador.enquete_atual
         })
         
+        # Enviar resultados atuais
         resultados = gerenciador.obter_resultados()
         await websocket.send_json({
             'tipo': 'resultados_atualizados',
@@ -100,6 +106,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         'mensagem': f'Voto em {opcao} registrado com sucesso!'
                     })
                     
+                    # Atualizar todos os clientes conectados
                     resultados_atualizados = gerenciador.obter_resultados()
                     
                     for conexao in conexoes_ativas:
@@ -138,6 +145,17 @@ async def servir_js():
     js_path = os.path.join(FRONTEND_DIR, "script.js")
     return FileResponse(js_path)
 
+# === ADIÇÃO: Servir arquivos de áudio ===
+@app.get("/Sons/{arquivo}")
+async def servir_som(arquivo: str):
+    sons_dir = os.path.join(FRONTEND_DIR, "Sons")
+    arquivo_path = os.path.join(sons_dir, arquivo)
+    
+    if os.path.exists(arquivo_path):
+        return FileResponse(arquivo_path)
+    else:
+        return {"erro": f"Arquivo de áudio não encontrado: {arquivo}"}, 404
+
 @app.get("/enquete")
 async def obter_enquete():
     return gerenciador.enquete_atual
@@ -161,4 +179,5 @@ if __name__ == "__main__":
     print(f"Diretorio frontend: {FRONTEND_DIR}")
     print("WebSocket: ws://localhost:8000/ws")
     print("URL: http://localhost:8000")
+    print("Generos disponiveis: 13 opcoes")
     uvicorn.run(app, host="0.0.0.0", port=8000)

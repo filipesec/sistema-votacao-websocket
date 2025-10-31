@@ -1,38 +1,14 @@
 const socket = new WebSocket("wss://previsible-dorotha-perturbingly.ngrok-free.dev/ws");
 
-  socket.onopen = () => console.log("Conectado ao servidor WebSocket");
-  socket.onclose = () => console.log("Conexão encerrada");
-  socket.onerror = (error) => console.error("Erro:", error);
+let chart = null;
+let jaVotou = false;
 
-  socket.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    if (data.tipo === "resultados_atualizados") {
-      updateResults(data.dados); //Função da parte da Juliana
-    }
-  };
-
-  function enviarVoto(opcao) {
-    const mensagem = { acao: "votar", opcao: opcao };
-    socket.send(JSON.stringify(mensagem));
-    console.log("Voto enviado:", mensagem);
-  }
-
-  function updateResults(resultados) {
-    // Funcao temporaria (será criada pela Juliana)
-    document.getElementById("resultados").innerHTML =
-      Object.entries(resultados)
-        .map(([opcao, votos]) => '${opcao}: ${votos}')
-        .join("<br>");
-  }
-
-// === PEGAR O CANVAS DO GRÁFICO ===
+// === CONFIGURAÇÃO INICIAL DO GRÁFICO ===
 const ctx = document.getElementById('grafico');
-
-// === RECUPERAR OS VOTOS ANTERIORES (SE EXISTIREM) ===
 let votos = JSON.parse(localStorage.getItem('votos')) || Array(13).fill(0);
 
-// === CRIAR O GRÁFICO ===
-const grafico = new Chart(ctx, {
+// Inicializar gráfico
+chart = new Chart(ctx, {
   type: 'doughnut',
   data: {
     labels: [
@@ -43,19 +19,9 @@ const grafico = new Chart(ctx, {
       label: 'Votos',
       data: votos,
       backgroundColor: [
-        '#d84315', // Rock
-        '#ff4081', // Pop
-        '#ff9100', // Funk
-        '#8bc34a', // Sertanejo
-        '#ffb300', // Piseiro
-        '#ff6f00', // Axé
-        '#795548', // Samba
-        '#00bcd4', // Eletrônica
-        '#ff7043', // Forró
-        '#9c27b0', // Rap
-        '#4caf50', // MPB
-        '#ffca28', // Pagode
-        '#00acc1'  // Reggae
+        '#d84315', '#ff4081', '#ff9100', '#8bc34a', '#ffb300',
+        '#ff6f00', '#795548', '#00bcd4', '#ff7043', '#9c27b0',
+        '#4caf50', '#ffca28', '#00acc1'
       ],
       borderWidth: 2,
       borderColor: '#fff'
@@ -80,27 +46,23 @@ const grafico = new Chart(ctx, {
   }
 });
 
-// === PEGAR OS BOTÕES ===
-const botoes = document.querySelectorAll('#botoes button');
-
-// === CAMINHOS DOS ARQUIVOS DE SOM ===
+// === CONFIGURAÇÃO DOS SONS E DESCRIÇÕES ===
 const sons = [
-  'Sons/Rock.mp3',
-  'Sons/Pop.mp3',
-  'Sons/Funk.mp3',
-  'Sons/Sertanejo.mp3',
-  'Sons/Piseiro.mp3',
-  'Sons/Axé.mp3',
-  'Sons/Samba.mp3',
-  'Sons/Eletrônica.mp3',
-  'Sons/Forró.mp3',
-  'Sons/Rap.mp3',
-  'Sons/MPB.mp3',
-  'Sons/Pagode.mp3',
-  'Sons/Reggae.mp3'
+  '/Sons/Rock.mp3',
+  '/Sons/Pop.mp3',
+  '/Sons/Funk.mp3',
+  '/Sons/Sertanejo.mp3',
+  '/Sons/Piseiro.mp3',
+  '/Sons/Axé.mp3',
+  '/Sons/Samba.mp3',
+  '/Sons/Eletrônica.mp3',
+  '/Sons/Forró.mp3',
+  '/Sons/Rap.mp3',
+  '/Sons/MPB.mp3',
+  '/Sons/Pagode.mp3',
+  '/Sons/Reggae.mp3'
 ];
 
-// === DESCRIÇÕES DAS MÚSICAS ===
 const descricoes = [
   '🎸 O Rock é marcado por guitarras elétricas e bateria intensa, com bandas lendárias e muita energia.',
   '🎤 O Pop traz melodias cativantes e grande apelo popular, dominando as paradas musicais.',
@@ -117,39 +79,110 @@ const descricoes = [
   '🌴 O Reggae tem vibrações tranquilas e mensagens de paz e liberdade.'
 ];
 
-// === ELEMENTO ONDE A DESCRIÇÃO SERÁ EXIBIDA ===
 const descricaoDiv = document.getElementById('descricao');
+const botoes = document.querySelectorAll('#botoes button');
 
-// === ADICIONAR EVENTO DE CLIQUE EM CADA BOTÃO ===
+// === WEBSOCKET EVENTOS ===
+socket.onopen = () => {
+    console.log("Conectado ao servidor WebSocket");
+};
+
+socket.onclose = () => {
+    console.log("Conexão encerrada");
+};
+
+socket.onerror = (error) => {
+    console.error("Erro:", error);
+};
+
+socket.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    
+    if (data.tipo === "resultados_atualizados") {
+        atualizarResultados(data);
+    }
+    else if (data.tipo === "voto_registrado") {
+        jaVotou = true;
+        console.log("Voto registrado com sucesso:", data.opcao);
+        // Desabilitar botões após votar
+        botoes.forEach(btn => {
+            btn.disabled = true;
+            btn.style.opacity = "0.6";
+        });
+    }
+    else if (data.tipo === "erro") {
+        alert(data.mensagem);
+    }
+};
+
+// === FUNÇÕES ===
+function enviarVoto(opcao) {
+    if (jaVotou) {
+        alert("Você já votou! Aguarde os resultados.");
+        return;
+    }
+    
+    if (socket.readyState === WebSocket.OPEN) {
+        const mensagem = { acao: "votar", opcao: opcao };
+        socket.send(JSON.stringify(mensagem));
+        console.log("Voto enviado:", mensagem);
+    } else {
+        alert("Não conectado ao servidor. Recarregue a página.");
+    }
+}
+
+function atualizarResultados(data) {
+    // Atualizar gráfico com dados do servidor
+    const opcoesServidor = ['Rock', 'Pop', 'Funk', 'Sertanejo', 'Piseiro', 'Axe', 'Samba', 'Eletronica', 'Forro', 'Rap', 'MPB', 'Pagode', 'Reggae'];
+    const novosVotos = Array(13).fill(0);
+    
+    data.opcoes.forEach(item => {
+        const index = opcoesServidor.indexOf(item.opcao);
+        if (index !== -1) {
+            novosVotos[index] = item.votos;
+        }
+    });
+    
+    chart.data.datasets[0].data = novosVotos;
+    chart.update();
+    
+    // Atualizar localStorage
+    localStorage.setItem('votos', JSON.stringify(novosVotos));
+}
+
+// === EVENTOS DOS BOTÕES ===
 botoes.forEach((botao, index) => {
-  botao.addEventListener('click', () => {
+    botao.addEventListener('click', () => {
+        const opcoes = [
+            'Rock', 'Pop', 'Funk', 'Sertanejo', 'Piseiro',
+            'Axe', 'Samba', 'Eletronica', 'Forro', 'Rap',
+            'MPB', 'Pagode', 'Reggae'
+        ];
+        
+        const opcao = opcoes[index];
+        
+        // Enviar voto via WebSocket
+        enviarVoto(opcao);
+        
+        // Tocar som - AGORA COM CAMINHO CORRETO
+        try {
+            const audio = new Audio(sons[index]);
+            audio.currentTime = 0;
+            audio.play().catch(err => {
+                console.warn('Não foi possível reproduzir o som:', err);
+            });
+        } catch (error) {
+            console.error('Erro ao carregar o som:', error);
+        }
 
-    // Atualiza os votos
-    votos[index] += 1;
-    grafico.data.datasets[0].data = votos;
-    grafico.update();
+        // Mostrar descrição
+        if (descricaoDiv) {
+            descricaoDiv.textContent = descricoes[index];
+            descricaoDiv.classList.add('mostrar');
+        }
 
-    // Salva no localStorage
-    localStorage.setItem('votos', JSON.stringify(votos));
-
-    // === TOCAR SOM USANDO new Audio() ===
-    try {
-      const audio = new Audio(sons[index]);
-      audio.currentTime = 0;
-      audio.play().catch(err => {
-        console.warn('Erro ao reproduzir o som:', err);
-      });
-    } catch (error) {
-      console.error('Erro ao carregar o som:', error);
-    }
-
-    // === MOSTRAR DESCRIÇÃO ===
-    if (descricaoDiv) {
-      descricaoDiv.textContent = descricoes[index];
-    }
-
-    // Efeito visual do clique
-    botao.classList.add('clicado');
-    setTimeout(() => botao.classList.remove('clicado'), 200);
-  });
+        // Efeito visual
+        botao.classList.add('clicado');
+        setTimeout(() => botao.classList.remove('clicado'), 200);
+    });
 });
