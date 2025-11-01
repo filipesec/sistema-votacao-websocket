@@ -1,4 +1,5 @@
-const socket = new WebSocket("wss://previsible-dorotha-perturbingly.ngrok-free.dev/ws");
+const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+const socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
 
 let chart = null;
 let jaVotou = false;

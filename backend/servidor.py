@@ -6,9 +6,7 @@ import json
 import asyncio
 import os
 
-# Obter o diretório atual do script (backend/)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# Frontend está no mesmo nível que backend: ../frontend
 FRONTEND_DIR = os.path.join(BASE_DIR, "..", "frontend")
 
 app = FastAPI(title="Sistema de Votacao Musical")
@@ -21,7 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Servir arquivos estáticos do frontend
+#servir arquivos estaticos do frontend
 app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 
 class GerenciadorVotacao:
@@ -77,13 +75,13 @@ async def websocket_endpoint(websocket: WebSocket):
     conexoes_ativas.append(websocket)
     
     try:
-        # Enviar enquete atual
+        #enviar enquete atual
         await websocket.send_json({
             'tipo': 'enquete_atual',
             'enquete': gerenciador.enquete_atual
         })
         
-        # Enviar resultados atuais
+        #enviar resultados atuais
         resultados = gerenciador.obter_resultados()
         await websocket.send_json({
             'tipo': 'resultados_atualizados',
@@ -106,7 +104,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         'mensagem': f'Voto em {opcao} registrado com sucesso!'
                     })
                     
-                    # Atualizar todos os clientes conectados
+                    #atualizar todos os clientes conectados
                     resultados_atualizados = gerenciador.obter_resultados()
                     
                     for conexao in conexoes_ativas:
@@ -128,13 +126,13 @@ async def websocket_endpoint(websocket: WebSocket):
         if websocket in conexoes_ativas:
             conexoes_ativas.remove(websocket)
 
-# Servir a página HTML principal
+#servir a pagina HTML principal
 @app.get("/")
 async def servir_pagina_principal():
     index_path = os.path.join(FRONTEND_DIR, "index.html")
     return FileResponse(index_path)
 
-# Servir arquivos CSS e JS individualmente
+#servir arquivos CSS e JS individualmente
 @app.get("/style.css")
 async def servir_css():
     css_path = os.path.join(FRONTEND_DIR, "style.css")
@@ -145,7 +143,7 @@ async def servir_js():
     js_path = os.path.join(FRONTEND_DIR, "script.js")
     return FileResponse(js_path)
 
-# === ADIÇÃO: Servir arquivos de áudio ===
+#servir arquivos de audio
 @app.get("/Sons/{arquivo}")
 async def servir_som(arquivo: str):
     sons_dir = os.path.join(FRONTEND_DIR, "Sons")
