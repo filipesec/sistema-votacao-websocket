@@ -4,11 +4,11 @@ const socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
 let chart = null;
 let jaVotou = false;
 
-// === CONFIGURAÇÃO INICIAL DO GRÁFICO ===
+//configuracao inicial grafico
 const ctx = document.getElementById('grafico');
 let votos = JSON.parse(localStorage.getItem('votos')) || Array(13).fill(0);
 
-// Inicializar gráfico
+//inicializar grafico
 chart = new Chart(ctx, {
   type: 'doughnut',
   data: {
@@ -47,7 +47,7 @@ chart = new Chart(ctx, {
   }
 });
 
-// === CONFIGURAÇÃO DOS SONS E DESCRIÇÕES ===
+//configuracao de som
 const sons = [
   '/Sons/Rock.mp3',
   '/Sons/Pop.mp3',
@@ -83,7 +83,7 @@ const descricoes = [
 const descricaoDiv = document.getElementById('descricao');
 const botoes = document.querySelectorAll('#botoes button');
 
-// === WEBSOCKET EVENTOS ===
+//eventos do websockets
 socket.onopen = () => {
     console.log("Conectado ao servidor WebSocket");
 };
@@ -105,7 +105,7 @@ socket.onmessage = (event) => {
     else if (data.tipo === "voto_registrado") {
         jaVotou = true;
         console.log("Voto registrado com sucesso:", data.opcao);
-        // Desabilitar botões após votar
+        //desabilitar botoes apos votar
         botoes.forEach(btn => {
             btn.disabled = true;
             btn.style.opacity = "0.6";
@@ -116,7 +116,7 @@ socket.onmessage = (event) => {
     }
 };
 
-// === FUNÇÕES ===
+//funcoes
 function enviarVoto(opcao) {
     if (jaVotou) {
         alert("Você já votou! Aguarde os resultados.");
@@ -133,7 +133,7 @@ function enviarVoto(opcao) {
 }
 
 function atualizarResultados(data) {
-    // Atualizar gráfico com dados do servidor
+    //atualizar grafico com dados do servidor
     const opcoesServidor = ['Rock', 'Pop', 'Funk', 'Sertanejo', 'Piseiro', 'Axe', 'Samba', 'Eletronica', 'Forro', 'Rap', 'MPB', 'Pagode', 'Reggae'];
     const novosVotos = Array(13).fill(0);
     
@@ -147,11 +147,11 @@ function atualizarResultados(data) {
     chart.data.datasets[0].data = novosVotos;
     chart.update();
     
-    // Atualizar localStorage
+    //atualizar localStorage
     localStorage.setItem('votos', JSON.stringify(novosVotos));
 }
 
-// === EVENTOS DOS BOTÕES ===
+//eventos dos botoes
 botoes.forEach((botao, index) => {
     botao.addEventListener('click', () => {
         const opcoes = [
@@ -162,10 +162,10 @@ botoes.forEach((botao, index) => {
         
         const opcao = opcoes[index];
         
-        // Enviar voto via WebSocket
+        //enviar voto via websocket
         enviarVoto(opcao);
         
-        // Tocar som - AGORA COM CAMINHO CORRETO
+        //tocar som
         try {
             const audio = new Audio(sons[index]);
             audio.currentTime = 0;
@@ -176,13 +176,13 @@ botoes.forEach((botao, index) => {
             console.error('Erro ao carregar o som:', error);
         }
 
-        // Mostrar descrição
+        //mostrar descricao
         if (descricaoDiv) {
             descricaoDiv.textContent = descricoes[index];
             descricaoDiv.classList.add('mostrar');
         }
 
-        // Efeito visual
+        //efeito visual
         botao.classList.add('clicado');
         setTimeout(() => botao.classList.remove('clicado'), 200);
     });
