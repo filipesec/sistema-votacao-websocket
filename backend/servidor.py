@@ -5,7 +5,7 @@ from fastapi.responses import FileResponse
 import json
 import asyncio
 import os
-
+#encontra a pasta do frontend
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FRONTEND_DIR = os.path.join(BASE_DIR, "..", "frontend")
 
@@ -175,7 +175,7 @@ if __name__ == "__main__":
     
     print("Servidor de Votacao Musical Iniciando...")
     print(f"Diretorio frontend: {FRONTEND_DIR}")
-    print("WebSocket: ws://localhost:8000/ws")
-    print("URL: http://localhost:8000")
+    print("WebSocket: ws://localhost:80/ws")
+    print("URL: http://localhost:80")
     print("Generos disponiveis: 13 opcoes")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=80)
