@@ -158,6 +158,16 @@ async def websocket_endpoint(websocket: WebSocket):
         if websocket in conexoes_ativas:
             conexoes_ativas.remove(websocket)
 
+# Serve o favicon para evitar erro 404
+@app.get("/favicon.ico")
+async def servir_favicon():
+    favicon_path = os.path.join(FRONTEND_DIR, "favicon.ico")
+    if os.path.exists(favicon_path):
+        return FileResponse(favicon_path)
+    # Retorna um ícone vazio se não existir
+    from fastapi.responses import Response
+    return Response(content=b"", media_type="image/x-icon")
+
 # Serve o arquivo HTML principal do frontend
 @app.get("/")
 async def servir_pagina_principal():
