@@ -3,14 +3,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import json
-import asyncio
 import os
-#encontra a pasta do frontend
+
+#Configuracao dos diretorios do projeto
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FRONTEND_DIR = os.path.join(BASE_DIR, "..", "frontend")
 
+#Cria instancia principal do FastAPI
 app = FastAPI(title="Sistema de Votacao Musical")
 
+#Configura CORS para permitir requisicoes de qualquer origem
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,11 +21,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-#servir arquivos estaticos do frontend
+#Monta diretorio de arquivos estaticos do frontend
 app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 
+#Classe responsavel por gerenciar toda a logica de votacao
 class GerenciadorVotacao:
+    
     def __init__(self):
+        #Define a estrutura da enquete musical
         self.enquete_atual = {
             'id': 'musical',
             'pergunta': 'Qual seu gênero musical favorito?',
@@ -33,31 +38,40 @@ class GerenciadorVotacao:
                 'MPB', 'Pagode', 'Reggae'
             ]
         }
+        #Inicializa contador de votos para cada opcao
         self.votos = {opcao: 0 for opcao in self.enquete_atual['opcoes']}
+        #Conjunto para armazenar ids dos clientes que já votaram
         self.clientes_votaram = set()
 
+        #Registra um voto para uma opcao especifica
     def registrar_voto(self, opcao: str, client_id: str) -> bool:
+        #Verifica se cliente ja votou
         if client_id in self.clientes_votaram:
             return False
+        #Verifica se a opcao e valida
         if opcao in self.votos:
+            #Incrementa contador de votos da opcao
             self.votos[opcao] += 1
+            #Marca cliente como tendo votado
             self.clientes_votaram.add(client_id)
             return True
         return False
-
+    
+    #Retorna os resultados atauis da votacao
     def obter_resultados(self) -> dict:
+        #Calcula total de votos
         total = sum(self.votos.values())
         resultados = []
         
+        #Constroi lista de resultados para cada opcao
         for opcao in self.enquete_atual['opcoes']:
             votos = self.votos[opcao]
-            porcentagem = (votos / total * 100) if total > 0 else 0
             resultados.append({
                 'opcao': opcao,
                 'votos': votos,
-                'porcentagem': round(porcentagem, 1)
             })
         
+        #Retorna estrutura completa dos resultados
         return {
             'enquete_id': self.enquete_atual['id'],
             'pergunta': self.enquete_atual['pergunta'],
@@ -65,48 +79,63 @@ class GerenciadorVotacao:
             'total_votos': total
         }
 
+#Instancia global do gerenciador de votacao
 gerenciador = GerenciadorVotacao()
+
+#Lista para armazenar todas as conexoes websocket ativas
 conexoes_ativas = []
 
+#Endpoint WebSocket para comunicacao em tempo real
+#Gerencia conexoes votos e broadcast de resultados
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+    #Aceita conexao do cliente
     await websocket.accept()
+    #Gera id unico baseado no objeto WebSocket
     client_id = str(id(websocket))
+    #Adiciona conexao a lista de ativas
     conexoes_ativas.append(websocket)
     
     try:
-        #enviar enquete atual
+        #Envia estrutura da enquete atual para o cliente
         await websocket.send_json({
             'tipo': 'enquete_atual',
             'enquete': gerenciador.enquete_atual
         })
         
-        #enviar resultados atuais
+        #Envia resultados atuais para o cliente
         resultados = gerenciador.obter_resultados()
         await websocket.send_json({
             'tipo': 'resultados_atualizados',
             **resultados
         })
         
+        #Loop principal para receber mensagens do cliente
         while True:
+            # Aguarda mensagem do cliente
             dados = await websocket.receive_text()
+            #Converte JSON string para dicionario
             dados_json = json.loads(dados)
             
+            #Processa acao de votar
             if dados_json.get('acao') == 'votar':
                 opcao = dados_json['opcao']
                 
+                #Tenta registrar o voto
                 sucesso = gerenciador.registrar_voto(opcao, client_id)
                 
                 if sucesso:
+                    #Confirma voto registrado para o cliente
                     await websocket.send_json({
                         'tipo': 'voto_registrado',
                         'opcao': opcao,
                         'mensagem': f'Voto em {opcao} registrado com sucesso!'
                     })
                     
-                    #atualizar todos os clientes conectados
+                    #Obtem resultados atualizados
                     resultados_atualizados = gerenciador.obter_resultados()
                     
+                    #Envia resultados atualizados para todos os clientes conectados
                     for conexao in conexoes_ativas:
                         try:
                             await conexao.send_json({
@@ -114,68 +143,42 @@ async def websocket_endpoint(websocket: WebSocket):
                                 **resultados_atualizados
                             })
                         except:
+                            #Remove conexões problematicas da lista
                             if conexao in conexoes_ativas:
                                 conexoes_ativas.remove(conexao)
                 else:
+                    #Cliente ja votou envia mensagem de erro
                     await websocket.send_json({
                         'tipo': 'erro',
                         'mensagem': 'Voce ja votou nesta enquete!'
                     })
                     
     except WebSocketDisconnect:
+        #Remove conexão quando cliente desconecta
         if websocket in conexoes_ativas:
             conexoes_ativas.remove(websocket)
 
-#servir a pagina HTML principal
+#Serve o arquivo HTML principal do frontend
 @app.get("/")
 async def servir_pagina_principal():
     index_path = os.path.join(FRONTEND_DIR, "index.html")
     return FileResponse(index_path)
-
-#servir arquivos CSS e JS individualmente
-@app.get("/style.css")
-async def servir_css():
-    css_path = os.path.join(FRONTEND_DIR, "style.css")
-    return FileResponse(css_path)
-
-@app.get("/script.js")
-async def servir_js():
-    js_path = os.path.join(FRONTEND_DIR, "script.js")
-    return FileResponse(js_path)
-
-#servir arquivos de audio
+#Serve os arquivos de audio
 @app.get("/Sons/{arquivo}")
 async def servir_som(arquivo: str):
     sons_dir = os.path.join(FRONTEND_DIR, "Sons")
     arquivo_path = os.path.join(sons_dir, arquivo)
-    
+    # Verifica se arquivo existe antes de servir
     if os.path.exists(arquivo_path):
         return FileResponse(arquivo_path)
     else:
         return {"erro": f"Arquivo de áudio não encontrado: {arquivo}"}, 404
 
-@app.get("/enquete")
-async def obter_enquete():
-    return gerenciador.enquete_atual
-
-@app.get("/resultados")
-async def obter_resultados():
-    return gerenciador.obter_resultados()
-
-@app.get("/estatisticas")
-async def obter_estatisticas():
-    resultados = gerenciador.obter_resultados()
-    return {
-        "total_votos": resultados["total_votos"],
-        "estilos_disponiveis": len(gerenciador.enquete_atual["opcoes"])
-    }
-
+#Ponto de entrada para execucao direta do servidor
 if __name__ == "__main__":
+
     import uvicorn
-    
-    print("Servidor de Votacao Musical Iniciando...")
-    print(f"Diretorio frontend: {FRONTEND_DIR}")
-    print("WebSocket: ws://localhost:80/ws")
-    print("URL: http://localhost:80")
-    print("Generos disponiveis: 13 opcoes")
+    # Inicia servidor UVicorn na porta 80
+    print("Servidor de votação musical inciado...")
+    print("Servidor rodando na porta 80")
     uvicorn.run(app, host="0.0.0.0", port=80)
