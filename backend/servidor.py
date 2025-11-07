@@ -1,9 +1,10 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import json
 import os
+import hashlib
 
 # Configuracao dos diretorios do projeto
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -40,20 +41,24 @@ class GerenciadorVotacao:
         }
         # Inicializa contador de votos para cada opcao
         self.votos = {opcao: 0 for opcao in self.enquete_atual['opcoes']}
-        # Conjunto para armazenar ids dos clientes que já votaram
+        # Conjunto para armazenar hashes dos clientes que já votaram (baseado no IP)
         self.clientes_votaram = set()
 
+    def _gerar_hash_cliente(self, client_info: str) -> str:
+        # Gera um hash único baseado nas informações do cliente
+        return hashlib.md5(client_info.encode()).hexdigest()
+
     # Registra um voto para uma opcao especifica
-    def registrar_voto(self, opcao: str, client_id: str) -> bool:
+    def registrar_voto(self, opcao: str, client_hash: str) -> bool:
         # Verifica se cliente ja votou
-        if client_id in self.clientes_votaram:
+        if client_hash in self.clientes_votaram:
             return False
         # Verifica se a opcao e valida
         if opcao in self.votos:
             # Incrementa contador de votos da opcao
             self.votos[opcao] += 1
             # Marca cliente como tendo votado
-            self.clientes_votaram.add(client_id)
+            self.clientes_votaram.add(client_hash)
             return True
         return False
     
@@ -85,14 +90,31 @@ gerenciador = GerenciadorVotacao()
 # Lista para armazenar todas as conexoes websocket ativas
 conexoes_ativas = []
 
+def obter_ip_cliente(websocket: WebSocket) -> str:
+    # Obtem o IP do cliente da conexao WebSocket
+    try:
+        # Tenta obter o IP do cliente
+        client_host = websocket.client.host
+        return client_host if client_host else "unknown"
+    except:
+        return "unknown"
+
 # Endpoint WebSocket para comunicacao em tempo real
 # Gerencia conexoes votos e broadcast de resultados
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     # Aceita conexao do cliente
     await websocket.accept()
-    # Gera id unico baseado no objeto WebSocket
-    client_id = str(id(websocket))
+    
+    # Obtem IP do cliente para identificar unicamente
+    client_ip = obter_ip_cliente(websocket)
+    
+    # Gera hash unico baseado no IP e o User-Agent
+    client_info = f"{client_ip}"
+    client_hash = gerenciador._gerar_hash_cliente(client_info)
+    
+    print(f"Novo cliente conectado: {client_ip} -> Hash: {client_hash}")
+    
     # Adiciona conexao a lista de ativas
     conexoes_ativas.append(websocket)
     
@@ -103,11 +125,15 @@ async def websocket_endpoint(websocket: WebSocket):
             'enquete': gerenciador.enquete_atual
         })
         
-        # Envia resultados atuais para o cliente
+        # Verifica se este cliente ja votou
+        ja_votou = client_hash in gerenciador.clientes_votaram
+        
+        # Envia resultados atuais para o cliente junto com informacao se ja votou
         resultados = gerenciador.obter_resultados()
         await websocket.send_json({
             'tipo': 'resultados_atualizados',
-            **resultados
+            **resultados,
+            'ja_votou': ja_votou  # Informa ao frontend se ja votou
         })
         
         # Loop principal para receber mensagens do cliente
@@ -121,10 +147,12 @@ async def websocket_endpoint(websocket: WebSocket):
             if dados_json.get('acao') == 'votar':
                 opcao = dados_json['opcao']
                 
-                # Tenta registrar o voto
-                sucesso = gerenciador.registrar_voto(opcao, client_id)
+                # Tenta registrar o voto usando o hash do cliente
+                sucesso = gerenciador.registrar_voto(opcao, client_hash)
                 
                 if sucesso:
+                    print(f"Voto registrado: {opcao} para cliente {client_ip}")
+                    
                     # Confirma voto registrado para o cliente
                     await websocket.send_json({
                         'tipo': 'voto_registrado',
@@ -143,20 +171,22 @@ async def websocket_endpoint(websocket: WebSocket):
                                 **resultados_atualizados
                             })
                         except:
-                            # Remove conexões problematicas da lista
+                            # Remove conexoes problematicas da lista
                             if conexao in conexoes_ativas:
                                 conexoes_ativas.remove(conexao)
                 else:
                     # Cliente ja votou envia mensagem de erro
+                    print(f"Tentativa de voto duplicado: {client_ip}")
                     await websocket.send_json({
                         'tipo': 'erro',
                         'mensagem': 'Voce ja votou nesta enquete!'
                     })
                     
     except WebSocketDisconnect:
-        # Remove conexão quando cliente desconecta
+        # Remove conexao quando cliente desconecta
         if websocket in conexoes_ativas:
             conexoes_ativas.remove(websocket)
+        print(f"Cliente desconectado: {client_ip}")
 
 # Serve o favicon para evitar erro 404
 @app.get("/favicon.ico")
@@ -201,6 +231,7 @@ async def servir_som(arquivo: str):
 if __name__ == "__main__":
     import uvicorn
     # Inicia servidor UVicorn na porta 80
-    print("Servidor de votação musical inciado...")
+    print("Servidor de votação musical iniciado...")
     print("Servidor rodando na porta 80")
+    print("Sistema de prevenção de votos duplicados ativo - Baseado em IP do cliente")
     uvicorn.run(app, host="0.0.0.0", port=80)
