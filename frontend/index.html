@@ -1,42 +1,70 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="./style.css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-    <title>Página Votação</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="style.css" />
+  <title>Votação Musical</title>
 </head>
 <body>
-    <header class="header">
-        <h1></i>Qual seu gênero musical favorito?</h1>
-        <p>Vote abaixo e veja os resultados ao vivo</p>
-    </header>
-    <main>
-        <section id="botoes" class="botoes">
-            <button id="Rock">Rock</button>
-            <button id="Pop">Pop</button>
-            <button id="Funk">Funk</button>
-            <button id="Sertanejo">Sertanejo</button>
-            <button id="Piseiro">Piseiro</button>
-            <button id="Axe">Axé</button>
-            <button id="Samba">Samba</button>
-            <button id="Eletronica">Eletrônica</button>
-            <button id="Forro">Forró</button>
-            <button id="Rap">Rap</button>
-            <button id="MPB">MPB</button>
-            <button id="Pagode">Pagode</button>
-            <button id="Reggae">Reggae</button>
-        </section>
-        <section id="resultados" class="resultados">
-            <h2>Resultados Parciais</h2>
-            <canvas id="grafico"></canvas>
-            <div id="descricao" class="descricao"></div>
-            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-            <script src="script.js"></script>
-        </section>
-    </main>
-    <footer class="footer">
-        <p>@ 2025 Antônio Wesley Veras Costa, Filipe C, Juliana Mendes de Carvalho, Luis Henrique de Paiva Marques, Richelle Caroline de Oliveira Costa</p>
-    </footer>
+  <header class="header">
+    <h1>🎧 Qual seu gênero musical favorito?</h1>
+    <p>Vote e veja os resultados em tempo real</p>
+  </header>
+
+  <main>
+    <section id="resultados" class="resultados">
+      <h2>📊 Resultados Parciais</h2>
+      <div id="grafico-container">
+        <canvas id="grafico"></canvas>
+      </div>
+    </section>
+
+    <section id="intro" class="intro">
+      <h2>Escolha seu estilo e participe da votação</h2>
+      <p>Selecione o gênero que mais combina com você e confirme seu voto!</p>
+    </section>
+
+    <section id="botoes" class="botoes">
+      <button id="Rock">🎸 Rock</button>
+      <button id="Pop">🎤 Pop</button>
+      <button id="Funk">🎶 Funk</button>
+      <button id="Sertanejo">🤠 Sertanejo</button>
+      <button id="Piseiro">💃 Piseiro</button>
+      <button id="Axe">🌞 Axé</button>
+      <button id="Samba">🥁 Samba</button>
+      <button id="Eletronica">🎧 Eletrônica</button>
+      <button id="Forro">🎼 Forró</button>
+      <button id="Rap">🎙️ Rap</button>
+      <button id="MPB">🎵 MPB</button>
+      <button id="Pagode">🪕 Pagode</button>
+      <button id="Reggae">🌴 Reggae</button>
+    </section>
+  </main>
+
+  <!-- Modal de Confirmação -->
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <img id="capaAlbum" src="" alt="Capa do Álbum" />
+      <div class="info-musica">
+        <h3 id="nomeMusica"></h3>
+        <p id="artista"></p>
+        <p id="album"></p>
+      </div>
+      <p id="descricao" class="descricao"></p>
+      <audio id="audioGenero" controls></audio>
+      <div class="modal-botoes">
+        <button id="confirmar">✅ Confirmar Voto</button>
+        <button id="cancelar">❌ Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>© 2025 Antônio Wesley Veras Costa, Filipe Costa Barbosa, Juliana Mendes de Carvalho, Luis Henrique de Paiva Marques, Richelle Caroline de Oliveira Costa</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
