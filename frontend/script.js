@@ -1,15 +1,14 @@
 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 const socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
 
-let chart = null;
 let jaVotou = false;
 
-//configuracao inicial grafico
+// configuração inicial do gráfico
 const ctx = document.getElementById('grafico');
 let votos = JSON.parse(localStorage.getItem('votos')) || Array(13).fill(0);
 
-//inicializar grafico
-chart = new Chart(ctx, {
+// ✅ o gráfico real precisa ser armazenado em `chart`, não apenas em `grafico`
+const chart = new Chart(ctx, {
   type: 'doughnut',
   data: {
     labels: [
@@ -24,44 +23,76 @@ chart = new Chart(ctx, {
         '#ff6f00', '#795548', '#00bcd4', '#ff7043', '#9c27b0',
         '#4caf50', '#ffca28', '#00acc1'
       ],
-      borderWidth: 2,
-      borderColor: '#fff'
+      borderColor: '#fff',
+      borderWidth: 2
     }]
   },
   options: {
     responsive: true,
-    maintainAspectRatio: false,
-    animation: {
-      duration: 1500,
-      easing: 'easeOutBounce'
-    },
     plugins: {
-      legend: {
-        position: 'bottom',
-        labels: {
-          font: { size: 14 },
-          color: '#333'
-        }
-      }
+      legend: { position: 'bottom', labels: { color: '#f1f5f9', font: { size: 14 } } }
     }
   }
 });
 
-//configuracao de som
+const botoes = document.querySelectorAll('#botoes button');
+const modal = document.getElementById('modal');
+const capaAlbum = document.getElementById('capaAlbum');
+const nomeMusica = document.getElementById('nomeMusica');
+const artista = document.getElementById('artista');
+const album = document.getElementById('album');
+const audioGenero = document.getElementById('audioGenero');
+const descricao = document.getElementById('descricao');
+const confirmar = document.getElementById('confirmar');
+const cancelar = document.getElementById('cancelar');
+
+// configuração de som
 const sons = [
-  '/Sons/Rock.mp3',
-  '/Sons/Pop.mp3',
-  '/Sons/Funk.mp3',
-  '/Sons/Sertanejo.mp3',
-  '/Sons/Piseiro.mp3',
-  '/Sons/Axé.mp3',
-  '/Sons/Samba.mp3',
-  '/Sons/Eletrônica.mp3',
-  '/Sons/Forró.mp3',
-  '/Sons/Rap.mp3',
-  '/Sons/MPB.mp3',
-  '/Sons/Pagode.mp3',
-  '/Sons/Reggae.mp3'
+  'Sons/Rock.mp3',
+  'Sons/Pop.mp3',
+  'Sons/Funk.mp3',
+  'Sons/Sertanejo.mp3',
+  'Sons/Piseiro.mp3',
+  'Sons/Axé.mp3',
+  'Sons/Samba.mp3',
+  'Sons/Eletrônica.mp3',
+  'Sons/Forró.mp3',
+  'Sons/Rap.mp3',
+  'Sons/MPB.mp3',
+  'Sons/Pagode.mp3',
+  'Sons/Reggae.mp3'
+];
+
+const capas = [
+  'Capas/Rock.jpeg', 
+  'Capas/Pop.jpeg', 
+  'Capas/Funk.jpeg', 
+  'Capas/Sertanejo.jpeg',
+  'Capas/Piseiro.jpeg', 
+  'Capas/Axé.jpeg', 
+  'Capas/Samba.jpeg', 
+  'Capas/Eletrônica.jpg',
+  'Capas/Forró.jpeg', 
+  'Capas/Rap.jpeg', 
+  'Capas/MPB.jpeg', 
+  'Capas/Pagode.jpeg', 
+  'Capas/Reggae.jpg'
+];
+
+const musicasInfo = [
+  { nome: 'Sweet Child O’ Mine', artista: 'Guns N’ Roses', album: 'Appetite For Destruction' },
+  { nome: 'Thriller', artista: 'Michael Jackson', album: 'Thriller' },
+  { nome: 'Vou Desafiar Você', artista: 'MC Sapao, DJ Detonna', album: 'Vou Desafiar Você' },
+  { nome: 'Evidências', artista: 'Chitãozinho & Xororó', album: 'Cowboy do Asfalto' },
+  { nome: 'Letícia', artista: 'Zé Vaqueiro', album: 'O Original' },
+  { nome: '100% Você - Ao Vivo', artista: 'Bell Marques', album: 'Só as Antigas (Ao Vivo)' },
+  { nome: 'Cheia de Manias', artista: 'Raça Negra', album: 'Cheia de Manias' },
+  { nome: 'Titanium (feat. Sia)', artista: 'David Guetta, Sia', album: 'Nothing but the Beat (Ultimate Edition)' },
+  { nome: 'Planeta de Cores', artista: 'Forrozao Tropykalia', album: 'Planeta de Cores, Vol. 7' },
+  { nome: 'Negro Drama', artista: 'Racionais MC’s', album: 'Nada Como um Dia Após o Outro Dia, Vol. 1 & 2' },
+  { nome: 'Garoto de Aluguel (Taxi Boy) [Ao Vivo]', artista: 'Zé Ramalho', album: 'Zé Ramalho Ao Vivo 2005 (Deluxe)' },
+  { nome: 'Deixa Acontecer - Ao Vivo', artista: 'Grupo Revelação', album: 'Ao Vivo - Na Palma da Mão' },
+  { nome: 'Is This Love', artista: 'Bob Marley & The Wailers', album: 'Kaya' }
 ];
 
 const descricoes = [
@@ -73,118 +104,97 @@ const descricoes = [
   '🌞 O Axé é pura energia baiana, perfeito para dançar e celebrar.',
   '🥁 O Samba é o ritmo da alma brasileira, com percussão marcante e letras cheias de emoção.',
   '🎧 A Eletrônica é moderna, com batidas pulsantes e atmosferas digitais vibrantes.',
-  '💃 O Forró é a dança típica do Nordeste, com sanfona, zabumba e muito calor humano.',
-  '🎤 O Rap traz rimas intensas e mensagens sociais fortes, com batidas urbanas.',
+  '🎼 O Forró é a dança típica do Nordeste, com sanfona, zabumba e muito calor humano.',
+  '🎙️ O Rap traz rimas intensas e mensagens sociais fortes, com batidas urbanas.',
   '🎵 A MPB mistura ritmos nacionais com poesia e melodias sofisticadas.',
-  '🎶 O Pagode é o samba mais leve e romântico, ideal para cantar junto.',
+  '🪕 O Pagode é o samba mais leve e romântico, ideal para cantar junto.',
   '🌴 O Reggae tem vibrações tranquilas e mensagens de paz e liberdade.'
 ];
 
-const descricaoDiv = document.getElementById('descricao');
-const botoes = document.querySelectorAll('#botoes button');
+let generoSelecionado = null;
 
-//eventos do websockets
-socket.onopen = () => {
-    console.log("Conectado ao servidor WebSocket");
-};
-
-socket.onclose = () => {
-    console.log("Conexão encerrada");
-};
-
-socket.onerror = (error) => {
-    console.error("Erro:", error);
-};
+// eventos do websocket
+socket.onopen = () => console.log("Conectado ao servidor WebSocket");
+socket.onclose = () => console.log("Conexão encerrada");
+socket.onerror = (error) => console.error("Erro:", error);
 
 socket.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    
-    if (data.tipo === "resultados_atualizados") {
-        atualizarResultados(data);
-    }
-    else if (data.tipo === "voto_registrado") {
-        jaVotou = true;
-        console.log("Voto registrado com sucesso:", data.opcao);
-        //desabilitar botoes apos votar
-        botoes.forEach(btn => {
-            btn.disabled = true;
-            btn.style.opacity = "0.6";
-        });
-    }
-    else if (data.tipo === "erro") {
-        alert(data.mensagem);
-    }
+  const data = JSON.parse(event.data);
+
+  if (data.tipo === "resultados_atualizados") {
+    atualizarResultados(data);
+  } else if (data.tipo === "voto_registrado") {
+    jaVotou = true;
+    botoes.forEach(btn => {
+      btn.disabled = true;
+      btn.style.opacity = "0.6";
+    });
+  } else if (data.tipo === "erro") {
+    alert(data.mensagem);
+  }
 };
 
-//funcoes
+// funções
 function enviarVoto(opcao) {
-    if (jaVotou) {
-        alert("Você já votou! Aguarde os resultados.");
-        return;
-    }
-    
-    if (socket.readyState === WebSocket.OPEN) {
-        const mensagem = { acao: "votar", opcao: opcao };
-        socket.send(JSON.stringify(mensagem));
-        console.log("Voto enviado:", mensagem);
-    } else {
-        alert("Não conectado ao servidor. Recarregue a página.");
-    }
+  if (jaVotou) {
+    alert("Você já votou! Aguarde os resultados.");
+    return;
+  }
+
+  if (socket.readyState === WebSocket.OPEN) {
+    const mensagem = { acao: "votar", opcao: opcao };
+    socket.send(JSON.stringify(mensagem));
+    console.log("Voto enviado:", mensagem);
+  } else {
+    alert("Não conectado ao servidor. Recarregue a página.");
+  }
 }
 
 function atualizarResultados(data) {
-    //atualizar grafico com dados do servidor
-    const opcoesServidor = ['Rock', 'Pop', 'Funk', 'Sertanejo', 'Piseiro', 'Axe', 'Samba', 'Eletronica', 'Forro', 'Rap', 'MPB', 'Pagode', 'Reggae'];
-    const novosVotos = Array(13).fill(0);
-    
-    data.opcoes.forEach(item => {
-        const index = opcoesServidor.indexOf(item.opcao);
-        if (index !== -1) {
-            novosVotos[index] = item.votos;
-        }
-    });
-    
-    chart.data.datasets[0].data = novosVotos;
-    chart.update();
-    
-    //atualizar localStorage
-    localStorage.setItem('votos', JSON.stringify(novosVotos));
+  const opcoesServidor = ['Rock', 'Pop', 'Funk', 'Sertanejo', 'Piseiro', 'Axé', 'Samba', 'Eletrônica', 'Forró', 'Rap', 'MPB', 'Pagode', 'Reggae'];
+  const novosVotos = Array(13).fill(0);
+
+  data.opcoes.forEach(item => {
+    const index = opcoesServidor.indexOf(item.opcao);
+    if (index !== -1) novosVotos[index] = item.votos;
+  });
+
+  chart.data.datasets[0].data = novosVotos; // ✅ usa o gráfico correto
+  chart.update();
+
+  localStorage.setItem('votos', JSON.stringify(novosVotos));
 }
 
-//eventos dos botoes
+// eventos dos botões
 botoes.forEach((botao, index) => {
-    botao.addEventListener('click', () => {
-        const opcoes = [
-            'Rock', 'Pop', 'Funk', 'Sertanejo', 'Piseiro',
-            'Axe', 'Samba', 'Eletronica', 'Forro', 'Rap',
-            'MPB', 'Pagode', 'Reggae'
-        ];
-        
-        const opcao = opcoes[index];
-        
-        //enviar voto via websocket
-        enviarVoto(opcao);
-        
-        //tocar som
-        try {
-            const audio = new Audio(sons[index]);
-            audio.currentTime = 0;
-            audio.play().catch(err => {
-                console.warn('Não foi possível reproduzir o som:', err);
-            });
-        } catch (error) {
-            console.error('Erro ao carregar o som:', error);
-        }
+  botao.addEventListener('click', () => {
+    generoSelecionado = index;
 
-        //mostrar descricao
-        if (descricaoDiv) {
-            descricaoDiv.textContent = descricoes[index];
-            descricaoDiv.classList.add('mostrar');
-        }
+    capaAlbum.src = capas[index];
+    nomeMusica.textContent = musicasInfo[index].nome;
+    artista.textContent = `🎤 Artista: ${musicasInfo[index].artista}`;
+    album.textContent = `💿 Álbum: ${musicasInfo[index].album}`;
+    descricao.textContent = descricoes[index];
+    audioGenero.src = sons[index]; // ✅ correção de variável
 
-        //efeito visual
-        botao.classList.add('clicado');
-        setTimeout(() => botao.classList.remove('clicado'), 200);
-    });
+    modal.style.display = 'flex';
+  });
 });
 
+cancelar.addEventListener('click', () => {
+  modal.style.display = 'none';
+  audioGenero.pause();
+});
+
+confirmar.addEventListener('click', () => {
+  if (generoSelecionado !== null) {
+    votos[generoSelecionado]++;
+    chart.data.datasets[0].data = votos;
+    chart.update();
+    localStorage.setItem('votos', JSON.stringify(votos));
+    modal.style.display = 'none';
+    audioGenero.pause();
+
+    document.getElementById('grafico-container').scrollIntoView({ behavior: 'smooth' });
+  }
+});
