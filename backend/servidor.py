@@ -227,11 +227,21 @@ async def servir_som(arquivo: str):
     else:
         return {"erro": f"Arquivo de áudio não encontrado: {arquivo}"}, 404
 
+# Serve as capas dos álbuns
+@app.get("/Capas/{arquivo}")
+async def servir_capa(arquivo: str):
+    capas_dir = os.path.join(FRONTEND_DIR, "Capas")
+    arquivo_path = os.path.join(capas_dir, arquivo)
+    # Verifica se arquivo existe antes de servir
+    if os.path.exists(arquivo_path):
+        return FileResponse(arquivo_path)
+    else:
+        return {"erro": f"Arquivo de capa não encontrado: {arquivo}"}, 404
+
 # Ponto de entrada para execucao direta do servidor
 if __name__ == "__main__":
     import uvicorn
-    # Inicia servidor UVicorn na porta 80
+    # Inicia servidor uvicorn na porta 80
     print("Servidor de votação musical iniciado...")
     print("Servidor rodando na porta 80")
-    print("Sistema de prevenção de votos duplicados ativo - Baseado em IP do cliente")
     uvicorn.run(app, host="0.0.0.0", port=80)
