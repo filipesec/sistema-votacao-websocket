@@ -7,7 +7,6 @@ let jaVotou = false;
 const ctx = document.getElementById('grafico');
 let votos = JSON.parse(localStorage.getItem('votos')) || Array(13).fill(0);
 
-// ✅ o gráfico real precisa ser armazenado em `chart`, não apenas em `grafico`
 const chart = new Chart(ctx, {
   type: 'doughnut',
   data: {
@@ -48,35 +47,35 @@ const cancelar = document.getElementById('cancelar');
 
 // configuração de som
 const sons = [
-  'Sons/Rock.mp3',
-  'Sons/Pop.mp3',
-  'Sons/Funk.mp3',
-  'Sons/Sertanejo.mp3',
-  'Sons/Piseiro.mp3',
-  'Sons/Axé.mp3',
-  'Sons/Samba.mp3',
-  'Sons/Eletrônica.mp3',
-  'Sons/Forró.mp3',
-  'Sons/Rap.mp3',
-  'Sons/MPB.mp3',
-  'Sons/Pagode.mp3',
-  'Sons/Reggae.mp3'
+  '/Sons/Rock.mp3',
+  '/Sons/Pop.mp3',
+  '/Sons/Funk.mp3',
+  '/Sons/Sertanejo.mp3',
+  '/Sons/Piseiro.mp3',
+  '/Sons/Axé.mp3',
+  '/Sons/Samba.mp3',
+  '/Sons/Eletrônica.mp3',
+  '/Sons/Forró.mp3',
+  '/Sons/Rap.mp3',
+  '/Sons/MPB.mp3',
+  '/Sons/Pagode.mp3',
+  '/Sons/Reggae.mp3'
 ];
 
 const capas = [
-  'Capas/Rock.jpeg', 
-  'Capas/Pop.jpeg', 
-  'Capas/Funk.jpeg', 
-  'Capas/Sertanejo.jpeg',
-  'Capas/Piseiro.jpeg', 
-  'Capas/Axé.jpeg', 
-  'Capas/Samba.jpeg', 
-  'Capas/Eletrônica.jpg',
-  'Capas/Forró.jpeg', 
-  'Capas/Rap.jpeg', 
-  'Capas/MPB.jpeg', 
-  'Capas/Pagode.jpeg', 
-  'Capas/Reggae.jpg'
+  '/Capas/Rock.jpeg', 
+  '/Capas/Pop.jpeg', 
+  '/Capas/Funk.jpeg', 
+  '/Capas/Sertanejo.jpeg',
+  '/Capas/Piseiro.jpeg', 
+  '/Capas/Axé.jpeg', 
+  '/Capas/Samba.jpeg', 
+  '/Capas/Eletrônica.jpg',
+  '/Capas/Forró.jpeg', 
+  '/Capas/Rap.jpeg', 
+  '/Capas/MPB.jpeg', 
+  '/Capas/Pagode.jpeg', 
+  '/Capas/Reggae.jpg'
 ];
 
 const musicasInfo = [
@@ -89,7 +88,7 @@ const musicasInfo = [
   { nome: 'Cheia de Manias', artista: 'Raça Negra', album: 'Cheia de Manias' },
   { nome: 'Titanium (feat. Sia)', artista: 'David Guetta, Sia', album: 'Nothing but the Beat (Ultimate Edition)' },
   { nome: 'Planeta de Cores', artista: 'Forrozao Tropykalia', album: 'Planeta de Cores, Vol. 7' },
-  { nome: 'Negro Drama', artista: 'Racionais MC’s', album: 'Nada Como um Dia Após o Outro Dia, Vol. 1 & 2' },
+  { nome: 'Negro Drama', artista: 'Racionais MC\'s', album: 'Nada Como um Dia Após o Outro Dia, Vol. 1 & 2' },
   { nome: 'Garoto de Aluguel (Taxi Boy) [Ao Vivo]', artista: 'Zé Ramalho', album: 'Zé Ramalho Ao Vivo 2005 (Deluxe)' },
   { nome: 'Deixa Acontecer - Ao Vivo', artista: 'Grupo Revelação', album: 'Ao Vivo - Na Palma da Mão' },
   { nome: 'Is This Love', artista: 'Bob Marley & The Wailers', album: 'Kaya' }
@@ -129,6 +128,7 @@ socket.onmessage = (event) => {
       btn.disabled = true;
       btn.style.opacity = "0.6";
     });
+    alert(data.mensagem);	
   } else if (data.tipo === "erro") {
     alert(data.mensagem);
   }
@@ -151,15 +151,15 @@ function enviarVoto(opcao) {
 }
 
 function atualizarResultados(data) {
-  const opcoesServidor = ['Rock', 'Pop', 'Funk', 'Sertanejo', 'Piseiro', 'Axé', 'Samba', 'Eletrônica', 'Forró', 'Rap', 'MPB', 'Pagode', 'Reggae'];
-  const novosVotos = Array(13).fill(0);
+  const opcoesServidor = chart.data.labels;
+  const novosVotos = Array(opcoesServidor.length).fill(0);
 
   data.opcoes.forEach(item => {
     const index = opcoesServidor.indexOf(item.opcao);
     if (index !== -1) novosVotos[index] = item.votos;
   });
 
-  chart.data.datasets[0].data = novosVotos; // ✅ usa o gráfico correto
+  chart.data.datasets[0].data = novosVotos;
   chart.update();
 
   localStorage.setItem('votos', JSON.stringify(novosVotos));
@@ -175,26 +175,29 @@ botoes.forEach((botao, index) => {
     artista.textContent = `🎤 Artista: ${musicasInfo[index].artista}`;
     album.textContent = `💿 Álbum: ${musicasInfo[index].album}`;
     descricao.textContent = descricoes[index];
-    audioGenero.src = sons[index]; // ✅ correção de variável
-
+    audioGenero.src = sons[index];
     modal.style.display = 'flex';
   });
 });
 
-cancelar.addEventListener('click', () => {
-  modal.style.display = 'none';
-  audioGenero.pause();
+//Fechar o modal
+cancelar.addEventListener('click', fecharModal);
+window.addEventListener('keydown', (e) => {
+    if (e.key === "Escape") fecharModal();
 });
 
+function fecharModal() {
+    modal.style.display = 'none';
+    document.body.style.overflow = 'auto';
+    audioGenero.pause();
+}
+
+//Confirmar o voto e envia ao backend
 confirmar.addEventListener('click', () => {
   if (generoSelecionado !== null) {
-    votos[generoSelecionado]++;
-    chart.data.datasets[0].data = votos;
-    chart.update();
-    localStorage.setItem('votos', JSON.stringify(votos));
-    modal.style.display = 'none';
-    audioGenero.pause();
-
-    document.getElementById('grafico-container').scrollIntoView({ behavior: 'smooth' });
-  }
+      const opcao = chart.data.labels[generoSelecionado];
+      enviarVoto(opcao); //envia voto ao servidor
+      fecharModal();
+      document.getElementById('grafico-container').scrollIntoView({ behavior: 'smooth'});
+    }
 });

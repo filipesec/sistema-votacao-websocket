@@ -29,6 +29,9 @@ app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 class GerenciadorVotacao:
     
     def __init__(self):
+        self.reiniciar_votacao()
+        
+    def reiniciar_votacao(self):
         # Define a estrutura da enquete musical
         self.enquete_atual = {
             'id': 'musical',
@@ -41,7 +44,7 @@ class GerenciadorVotacao:
         }
         # Inicializa contador de votos para cada opcao
         self.votos = {opcao: 0 for opcao in self.enquete_atual['opcoes']}
-        # Conjunto para armazenar hashes dos clientes que já votaram (baseado no IP)
+        # Limpa conjunto de clientes que ja votaram
         self.clientes_votaram = set()
 
     def _gerar_hash_cliente(self, client_info: str) -> str:
@@ -84,7 +87,7 @@ class GerenciadorVotacao:
             'total_votos': total
         }
 
-# Instancia global do gerenciador de votacao
+# Zera tudo quando o servidor e iniciado
 gerenciador = GerenciadorVotacao()
 
 # Lista para armazenar todas as conexoes websocket ativas
@@ -153,13 +156,6 @@ async def websocket_endpoint(websocket: WebSocket):
                 if sucesso:
                     print(f"Voto registrado: {opcao} para cliente {client_ip}")
                     
-                    # Confirma voto registrado para o cliente
-                    await websocket.send_json({
-                        'tipo': 'voto_registrado',
-                        'opcao': opcao,
-                        'mensagem': f'Voto em {opcao} registrado com sucesso!'
-                    })
-                    
                     # Obtem resultados atualizados
                     resultados_atualizados = gerenciador.obter_resultados()
                     
@@ -194,7 +190,7 @@ async def servir_favicon():
     favicon_path = os.path.join(FRONTEND_DIR, "favicon.ico")
     if os.path.exists(favicon_path):
         return FileResponse(favicon_path)
-    # Retorna um ícone vazio se não existir
+    # Retorna um icone vazio se nao existir
     from fastapi.responses import Response
     return Response(content=b"", media_type="image/x-icon")
 
@@ -227,7 +223,7 @@ async def servir_som(arquivo: str):
     else:
         return {"erro": f"Arquivo de áudio não encontrado: {arquivo}"}, 404
 
-# Serve as capas dos álbuns
+# Serve as capas dos albuns
 @app.get("/Capas/{arquivo}")
 async def servir_capa(arquivo: str):
     capas_dir = os.path.join(FRONTEND_DIR, "Capas")
