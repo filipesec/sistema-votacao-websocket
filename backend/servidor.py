@@ -2,6 +2,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+import uvicorn
 import json
 import os
 import hashlib
@@ -87,7 +88,6 @@ class GerenciadorVotacao:
             'total_votos': total
         }
 
-# Zera tudo quando o servidor e iniciado
 gerenciador = GerenciadorVotacao()
 
 # Lista para armazenar todas as conexoes websocket ativas
@@ -236,7 +236,6 @@ async def servir_capa(arquivo: str):
 
 # Ponto de entrada para execucao direta do servidor
 if __name__ == "__main__":
-    import uvicorn
     # Inicia servidor uvicorn na porta 80
     print("Servidor de votação musical iniciado...")
     print("Servidor rodando na porta 80")
