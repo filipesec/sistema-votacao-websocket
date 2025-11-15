@@ -1,12 +1,13 @@
 #IMPORT
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import uvicorn
 import json
 import os
-import hashlib
+import secrets
+from typing import Optional
 
 # Configuracao dos diretorios do projeto
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -46,24 +47,24 @@ class GerenciadorVotacao:
         }
         # Inicializa contador de votos para cada opcao
         self.votos = {opcao: 0 for opcao in self.enquete_atual['opcoes']}
-        # Limpa conjunto de clientes que ja votaram
+        # Limpa conjunto de clientes que ja votaram por cookie
         self.clientes_votaram = set()
 
-    def _gerar_hash_cliente(self, client_info: str) -> str:
-        # Gera um hash único baseado nas informações do cliente
-        return hashlib.md5(client_info.encode()).hexdigest()
+    def _gerar_id_usuario(self) -> str:
+        # Gera um ID unico para o usuario
+        return secrets.token_hex(16)
 
     # Registra um voto para uma opcao especifica
-    def registrar_voto(self, opcao: str, client_hash: str) -> bool:
-        # Verifica se cliente ja votou
-        if client_hash in self.clientes_votaram:
+    def registrar_voto(self, opcao: str, usuario_id: str) -> bool:
+        # Verifica se usuario ja votou
+        if usuario_id in self.clientes_votaram:
             return False
         # Verifica se a opcao e valida
         if opcao in self.votos:
             # Incrementa contador de votos da opcao
             self.votos[opcao] += 1
-            # Marca cliente como tendo votado
-            self.clientes_votaram.add(client_hash)
+            # Marca usuario como tendo votado
+            self.clientes_votaram.add(usuario_id)
             return True
         return False
     
@@ -94,30 +95,38 @@ gerenciador = GerenciadorVotacao()
 # Lista para armazenar todas as conexoes websocket ativas
 conexoes_ativas = []
 
-def obter_ip_cliente(websocket: WebSocket) -> str:
-    # Obtem o IP do cliente da conexao WebSocket
+def obter_usuario_id(websocket: WebSocket) -> Optional[str]:
+    # Obtem o cookie de usuario_id do WebSocket
     try:
-        # Tenta obter o IP do cliente
-        client_host = websocket.client.host
-        return client_host if client_host else "unknown"
+        cookie_header = websocket.headers.get("cookie", "")
+        cookies = {}
+        for cookie in cookie_header.split(";"):
+            if "=" in cookie:
+                key, value = cookie.strip().split("=", 1)
+                cookies[key] = value
+        return cookies.get("usuario_id")
     except:
-        return "unknown"
+        return None
 
 # Endpoint WebSocket para comunicacao em tempo real
-# Gerencia conexoes votos e broadcast de resultados
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     # Aceita conexao do cliente
     await websocket.accept()
     
-    # Obtem IP do cliente para identificar unicamente
-    client_ip = obter_ip_cliente(websocket)
+    # Obtem usuario_id do cookie
+    usuario_id = obter_usuario_id(websocket)
     
-    # Gera hash unico baseado no IP e o User-Agent
-    client_info = f"{client_ip}"
-    client_hash = gerenciador._gerar_hash_cliente(client_info)
+    if not usuario_id:
+        # So vota com cookie
+        await websocket.send_json({
+            'tipo': 'erro',
+            'mensagem': 'Cookie de usuário não encontrado. Recarregue a página.'
+        })
+        await websocket.close()
+        return
     
-    print(f"Novo cliente conectado: {client_ip} -> Hash: {client_hash}")
+    print(f"Novo cliente conectado: {usuario_id}")
     
     # Adiciona conexao a lista de ativas
     conexoes_ativas.append(websocket)
@@ -130,9 +139,9 @@ async def websocket_endpoint(websocket: WebSocket):
         })
         
         # Verifica se este cliente ja votou
-        ja_votou = client_hash in gerenciador.clientes_votaram
+        ja_votou = usuario_id in gerenciador.clientes_votaram
         
-        # Envia resultados atuais para o cliente junto com informacao se ja votou
+        # Envia resultados atuais para o cliente
         resultados = gerenciador.obter_resultados()
         await websocket.send_json({
             'tipo': 'resultados_atualizados',
@@ -151,11 +160,18 @@ async def websocket_endpoint(websocket: WebSocket):
             if dados_json.get('acao') == 'votar':
                 opcao = dados_json['opcao']
                 
-                # Tenta registrar o voto usando o hash do cliente
-                sucesso = gerenciador.registrar_voto(opcao, client_hash)
+                # Tenta registrar o voto usando o usuario_id do cookie
+                sucesso = gerenciador.registrar_voto(opcao, usuario_id)
                 
                 if sucesso:
-                    print(f"Voto registrado: {opcao} para cliente {client_ip}")
+                    print(f"Voto registrado: {opcao} para usuario {usuario_id}")
+                    
+                    # Confirma voto registrado para o cliente
+                    await websocket.send_json({
+                        'tipo': 'voto_registrado',
+                        'opcao': opcao,
+                        'mensagem': f'Voto em {opcao} registrado com sucesso!'
+                    })
                     
                     # Obtem resultados atualizados
                     resultados_atualizados = gerenciador.obter_resultados()
@@ -172,8 +188,8 @@ async def websocket_endpoint(websocket: WebSocket):
                             if conexao in conexoes_ativas:
                                 conexoes_ativas.remove(conexao)
                 else:
-                    # Cliente ja votou envia mensagem de erro
-                    print(f"Tentativa de voto duplicado: {client_ip}")
+                    # Usuario ja votou envia mensagem de erro
+                    print(f"Tentativa de voto duplicado: {usuario_id}")
                     await websocket.send_json({
                         'tipo': 'erro',
                         'mensagem': 'Voce ja votou nesta enquete!'
@@ -183,21 +199,43 @@ async def websocket_endpoint(websocket: WebSocket):
         # Remove conexao quando cliente desconecta
         if websocket in conexoes_ativas:
             conexoes_ativas.remove(websocket)
-        print(f"Cliente desconectado: {client_ip}")
+        print(f"Cliente desconectado: {usuario_id}")
 
-# Serve o favicon para evitar erro 404
-@app.get("/favicon.ico")
-async def servir_favicon():
-    favicon_path = os.path.join(FRONTEND_DIR, "favicon.ico")
-    if os.path.exists(favicon_path):
-        return FileResponse(favicon_path)
-    # Retorna um icone vazio se nao existir
-    from fastapi.responses import Response
-    return Response(content=b"", media_type="image/x-icon")
+# Endpoint para obter um novo usuario_id via HTTP
+@app.get("/obter-usuario-id")
+async def obter_novo_usuario_id(response: Response):
+    usuario_id = gerenciador._gerar_id_usuario()
+    
+    # Configura o cookie
+    response.set_cookie(
+        key="usuario_id",
+        value=usuario_id,
+        max_age=365*24*60*60,  # 1 ano
+        httponly=True,
+        samesite="lax"
+    )
+    
+    return {"usuario_id": usuario_id}
 
 # Serve o arquivo HTML principal do frontend
 @app.get("/")
-async def servir_pagina_principal():
+async def servir_pagina_principal(request: Request, response: Response):
+    # Verifica se ja tem cookie na requisicao
+    usuario_id = request.cookies.get("usuario_id")
+    
+    if not usuario_id:
+        # Gera novo ID se nao existe cookie
+        usuario_id = gerenciador._gerar_id_usuario()
+        response.set_cookie(
+            key="usuario_id",
+            value=usuario_id,
+            max_age=365*24*60*60,
+            httponly=True,
+            samesite="lax"
+        )
+        print(f"Novo cookie gerado: {usuario_id}")
+    
+    # Serve o arquivo HTML
     index_path = os.path.join(FRONTEND_DIR, "index.html")
     return FileResponse(index_path)
 
@@ -218,7 +256,6 @@ async def servir_js():
 async def servir_som(arquivo: str):
     sons_dir = os.path.join(FRONTEND_DIR, "Sons")
     arquivo_path = os.path.join(sons_dir, arquivo)
-    # Verifica se arquivo existe antes de servir
     if os.path.exists(arquivo_path):
         return FileResponse(arquivo_path)
     else:
@@ -229,7 +266,6 @@ async def servir_som(arquivo: str):
 async def servir_capa(arquivo: str):
     capas_dir = os.path.join(FRONTEND_DIR, "Capas")
     arquivo_path = os.path.join(capas_dir, arquivo)
-    # Verifica se arquivo existe antes de servir
     if os.path.exists(arquivo_path):
         return FileResponse(arquivo_path)
     else:
@@ -237,7 +273,7 @@ async def servir_capa(arquivo: str):
 
 # Ponto de entrada para execucao direta do servidor
 if __name__ == "__main__":
-    # Inicia servidor uvicorn na porta 80
     print("Servidor de votação musical iniciado...")
+    print("Sistema de prevenção: APENAS COOKIES")
     print("Servidor rodando na porta 80")
     uvicorn.run(app, host="0.0.0.0", port=80)
